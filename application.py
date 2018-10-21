@@ -5,7 +5,8 @@ from sqlalchemy import asc, desc
 from database_setup import Base, User, Category, Item
 from flask_sqlalchemy import SQLAlchemy
 from flask import session as login_session
-import random, string
+import random
+import string
 from oauth2client.client import flow_from_clientsecrets
 from oauth2client.client import FlowExchangeError
 import httplib2
@@ -21,27 +22,23 @@ app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///catalog.db'
 db = SQLAlchemy(app)
 
-# Connect to Database and create database session
-# engine = create_engine('sqlite:///catalog.db')
-# Base.metadata.bind = engine
-
-# DBSession = sessionmaker(bind=engine)
-# session = DBSession()
 
 @app.context_processor
 def inject_dict_for_all_templates():
     if 'username' in login_session and 'user_id' in login_session:
-        return dict(username = login_session['username'], user_id = login_session['user_id'])
+        return dict(username=login_session['username'],
+                    user_id=login_session['user_id'])
     else:
         return dict()
+
 
 @app.route('/login')
 def showLogin():
     state = ''.join(random.choice(string.ascii_uppercase + string.digits)
                     for x in range(32))
     login_session['state'] = state
-    # return "The current session state is %s" % login_session['state']
-    return render_template('login.html', STATE = state)
+    return render_template('login.html', STATE=state)
+
 
 @app.route('/gconnect', methods=['POST'])
 def gconnect():
@@ -70,7 +67,7 @@ def gconnect():
            % access_token)
     h = httplib2.Http()
     print(h.request(url, 'GET')[1])
-    result = json.loads(str(h.request(url, 'GET')[1], encoding = 'utf-8'))
+    result = json.loads(str(h.request(url, 'GET')[1], encoding='utf-8'))
     # If there was an error in the access token info, abort.
     if result.get('error') is not None:
         response = make_response(json.dumps(result.get('error')), 500)
@@ -96,7 +93,8 @@ def gconnect():
     stored_access_token = login_session.get('access_token')
     stored_gplus_id = login_session.get('gplus_id')
     if stored_access_token is not None and gplus_id == stored_gplus_id:
-        response = make_response(json.dumps('Current user is already connected.'),
+        response = make_response(json.dumps(
+                                'Current user is already connected.'),
                                  200)
         response.headers['Content-Type'] = 'application/json'
         return response
@@ -128,10 +126,12 @@ def gconnect():
     output += '!</h1>'
     output += '<img src="'
     output += login_session['picture']
-    output += ' " style = "width: 300px; height: 300px;border-radius: 150px;-webkit-border-radius: 150px;-moz-border-radius: 150px;"> '
+    output += ' " style = "width: 300px; height: 300px;border-radius:'
+    output += '150px;-webkit-border-radius: 150px;-moz-border-radius: 150px;"> '
     flash("you are now logged in as %s" % login_session['username'])
     print("done!")
     return output
+
 
 # DISCONNECT - Revoke a current user's token and reset their login_session
 @app.route('/gdisconnect')
@@ -166,13 +166,16 @@ def gdisconnect():
         response.headers['Content-Type'] = 'application/json'
         return response
 
+
 @app.route('/')
 @app.route('/catalog')
 def showCatalogHome():
     categories = db.session.query(Category).order_by(asc(Category.name))
     items = db.session.query(Item).order_by(desc(Item.id)).limit(10)
     print(items[0].category.name)
-    return render_template('catalogHome.html', categories=categories, items = items)
+    return render_template('catalogHome.html',
+                           categories=categories, items=items)
+
 
 @app.route('/JSON/')
 @app.route('/catalog/JSON/')
@@ -181,16 +184,18 @@ def showCatalogJson():
     categories = db.session.query(Category).order_by(asc(Category.name))
     for category in categories:
         items = db.session.query(Item).\
-        filter_by(category_id=category.id)
+                filter_by(category_id=category.id)
 
         itemList = []
         for item in items:
             itemList.append(item.serialize)
-        
-        categoryDict = {'id': category.id, 'name': category.name, 'items': itemList}
+
+        categoryDict = {'id': category.id, 'name': category.name,
+                        'items': itemList}
         categoryList.append(categoryDict)
 
-    return jsonify(categoryList)    
+    return jsonify(categoryList)
+
 
 @app.route('/catalog/<string:category_name>/items/')
 def showCategory(category_name):
@@ -200,7 +205,9 @@ def showCategory(category_name):
     items = db.session.query(Item).\
         filter_by(category_id=selectedCategory.id).\
         order_by(desc(Item.id))
-    return render_template('category.html', categories=categories, selectedCategory=selectedCategory, items=items)
+    return render_template('category.html', categories=categories,
+                           selectedCategory=selectedCategory, items=items)
+
 
 @app.route('/catalog/<string:category_name>/items/JSON/')
 def showCategoryJson(category_name):
@@ -212,10 +219,12 @@ def showCategoryJson(category_name):
     itemList = []
     for item in items:
         itemList.append(item.serialize)
-    
-    categoryDict = {'id': selectedCategory.id, 'name': selectedCategory.name, 'items': itemList}
-    
-    return jsonify(category = categoryDict)
+
+    categoryDict = {'id': selectedCategory.id,
+                    'name': selectedCategory.name, 'items': itemList}
+
+    return jsonify(category=categoryDict)
+
 
 @app.route('/catalog/<string:category_name>/<string:item_name>/')
 def showItem(category_name, item_name):
@@ -225,12 +234,14 @@ def showItem(category_name, item_name):
     print(item)
     return render_template('item.html', item=item)
 
+
 @app.route('/catalog/<string:category_name>/<string:item_name>/JSON/')
 def showItemJson(category_name, item_name):
     item, category = db.session.query(Item, Category).\
         filter(Item.category_id == Category.id).\
         filter(Category.name == category_name, Item.name == item_name).one()
-    return jsonify(item = item.serialize)
+    return jsonify(item=item.serialize)
+
 
 @app.route('/catalog/item/new/', methods=['GET', 'POST'])
 def addItem():
@@ -238,8 +249,10 @@ def addItem():
         return redirect('/login')
 
     if request.method == 'POST':
-        newItem = Item(name = request.form['itemName'], description = request.form['description'], category_id = request.form['category'], 
-            user_id = login_session['user_id'])
+        newItem = Item(name=request.form['itemName'],
+                       description=request.form['description'],
+                       category_id=request.form['category'],
+                       user_id=login_session['user_id'])
         db.session.add(newItem)
         db.session.commit()
         flash('%s item created' % newItem.name)
@@ -249,7 +262,9 @@ def addItem():
         categories = db.session.query(Category).order_by(asc(Category.name))
         return render_template('newItem.html', categories=categories)
 
-@app.route('/catalog/<string:category_name>/<string:item_name>/edit/', methods=['GET', 'POST'])
+
+@app.route('/catalog/<string:category_name>/<string:item_name>/edit/',
+           methods=['GET', 'POST'])
 def editItem(category_name, item_name):
     if 'username' not in login_session:
         return redirect('/login')
@@ -257,7 +272,9 @@ def editItem(category_name, item_name):
         filter(Item.category_id == Category.id).\
         filter(Category.name == category_name, Item.name == item_name).one()
     if login_session['user_id'] != editedItem.user_id:
-        return "<script>function myFunction() {alert('You are not authorized to edit items you did not create.');}</script><body onload='myFunction()''>"
+        return ("<script>function myFunction() {alert('You are not authorized" +
+        " to edit items you did not create.');}</script>" +
+        "<body onload='myFunction()''>")
     if request.method == 'POST':
         if request.form['itemName']:
             editedItem.name = request.form['itemName']
@@ -270,15 +287,20 @@ def editItem(category_name, item_name):
     else:
         return render_template('editItem.html', item=editedItem)
 
-@app.route('/catalog/<string:category_name>/<string:item_name>/delete/', methods=['GET', 'POST'])
+
+@app.route('/catalog/<string:category_name>/<string:item_name>/delete/',
+           methods=['GET', 'POST'])
 def deleteItem(category_name, item_name):
     if 'username' not in login_session:
         return redirect('/login')
-    itemToDelete, category = item, category = db.session.query(Item, Category).\
+    itemToDelete, category = item, category = db.session.\
+        query(Item, Category).\
         filter(Item.category_id == Category.id).\
         filter(Category.name == category_name, Item.name == item_name).one()
     if login_session['user_id'] != itemToDelete.user_id:
-        return "<script>function myFunction() {alert('You are not authorized to delete items you did not create.');}</script><body onload='myFunction()''>"
+        return ("<script>function myFunction() {alert('You are not" +
+        " authorized to delete items you did not create.');}</script>" +
+        "<body onload='myFunction()''>")
     if request.method == 'POST':
         db.session.delete(itemToDelete)
         db.session.commit()
@@ -286,6 +308,7 @@ def deleteItem(category_name, item_name):
         return redirect(url_for('showCatalogHome'))
     else:
         return render_template('deleteItem.html', item=itemToDelete)
+
 
 # User Helper Functions
 def createUser(login_session):
@@ -308,6 +331,7 @@ def getUserID(email):
         return user.id
     except:
         return None
+
 
 if __name__ == '__main__':
     app.secret_key = 'super_secret_key'
