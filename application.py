@@ -174,6 +174,24 @@ def showCatalogHome():
     print(items[0].category.name)
     return render_template('catalogHome.html', categories=categories, items = items)
 
+@app.route('/JSON/')
+@app.route('/catalog/JSON/')
+def showCatalogJson():
+    categoryList = []
+    categories = db.session.query(Category).order_by(asc(Category.name))
+    for category in categories:
+        items = db.session.query(Item).\
+        filter_by(category_id=category.id)
+
+        itemList = []
+        for item in items:
+            itemList.append(item.serialize)
+        
+        categoryDict = {'id': category.id, 'name': category.name, 'items': itemList}
+        categoryList.append(categoryDict)
+
+    return jsonify(categoryList)    
+
 @app.route('/catalog/<string:category_name>/items/')
 def showCategory(category_name):
     categories = db.session.query(Category).order_by(asc(Category.name))
@@ -184,6 +202,21 @@ def showCategory(category_name):
         order_by(desc(Item.id))
     return render_template('category.html', categories=categories, selectedCategory=selectedCategory, items=items)
 
+@app.route('/catalog/<string:category_name>/items/JSON/')
+def showCategoryJson(category_name):
+    selectedCategory = db.session.query(Category).\
+        filter_by(name=category_name).one()
+    items = db.session.query(Item).\
+        filter_by(category_id=selectedCategory.id)
+
+    itemList = []
+    for item in items:
+        itemList.append(item.serialize)
+    
+    categoryDict = {'id': selectedCategory.id, 'name': selectedCategory.name, 'items': itemList}
+    
+    return jsonify(category = categoryDict)
+
 @app.route('/catalog/<string:category_name>/<string:item_name>/')
 def showItem(category_name, item_name):
     item, category = db.session.query(Item, Category).\
@@ -191,6 +224,13 @@ def showItem(category_name, item_name):
         filter(Category.name == category_name, Item.name == item_name).one()
     print(item)
     return render_template('item.html', item=item)
+
+@app.route('/catalog/<string:category_name>/<string:item_name>/JSON/')
+def showItemJson(category_name, item_name):
+    item, category = db.session.query(Item, Category).\
+        filter(Item.category_id == Category.id).\
+        filter(Category.name == category_name, Item.name == item_name).one()
+    return jsonify(item = item.serialize)
 
 @app.route('/catalog/item/new/', methods=['GET', 'POST'])
 def addItem():
