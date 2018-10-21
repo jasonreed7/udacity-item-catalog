@@ -30,8 +30,8 @@ db = SQLAlchemy(app)
 
 @app.context_processor
 def inject_dict_for_all_templates():
-    if 'username' in login_session:
-        return dict(username = login_session['username'])
+    if 'username' in login_session and 'user_id' in login_session:
+        return dict(username = login_session['username'], user_id = login_session['user_id'])
     else:
         return dict()
 
@@ -116,6 +116,12 @@ def gconnect():
     login_session['picture'] = data['picture']
     login_session['email'] = data['email']
 
+    # see if user exists, if it doesn't make a new one
+    user_id = getUserID(login_session['email'])
+    if not user_id:
+        user_id = createUser(login_session)
+    login_session['user_id'] = user_id
+
     output = ''
     output += '<h1>Welcome, '
     output += login_session['username']
@@ -148,6 +154,7 @@ def gdisconnect():
         del login_session['username']
         del login_session['email']
         del login_session['picture']
+        del login_session['user_id']
 
         response = make_response(json.dumps('Successfully disconnected.'), 200)
         response.headers['Content-Type'] = 'application/json'
@@ -183,6 +190,28 @@ def showItem(category_name, item_name):
         filter(Category.name == category_name, Item.name == item_name).one()
     print(item)
     return render_template('item.html', item=item)
+
+# User Helper Functions
+def createUser(login_session):
+    newUser = User(name=login_session['username'], email=login_session[
+                   'email'])
+    db.session.add(newUser)
+    db.session.commit()
+    user = session.query(User).filter_by(email=login_session['email']).one()
+    return user.id
+
+
+def getUserInfo(user_id):
+    user = db.session.query(User).filter_by(id=user_id).one()
+    return user
+
+
+def getUserID(email):
+    try:
+        user = db.session.query(User).filter_by(email=email).one()
+        return user.id
+    except:
+        return None
 
 if __name__ == '__main__':
     app.secret_key = 'super_secret_key'
