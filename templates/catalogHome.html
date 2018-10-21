@@ -25,6 +25,11 @@
                 {% endfor %}
             </div>
             <div class="col-sm-8">
+                {% if username %}
+                    <div>
+                        <a href="{{url_for('addItem')}}">+Add Item</a>
+                    </div>
+                {% endif %}
                 <h2>Latest Items</h2>
                 {% for item in items %}
                     <h4><a href="{{url_for('showItem', category_name = item.category.name, item_name = item.name)}}">{{item.name}}</a> ({{item.category.name}})</h4>

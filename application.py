@@ -191,13 +191,31 @@ def showItem(category_name, item_name):
     print(item)
     return render_template('item.html', item=item)
 
+@app.route('/catalog/item/new/', methods=['GET', 'POST'])
+def addItem():
+    if 'username' not in login_session:
+        return redirect('/login')
+
+    if request.method == 'POST':
+        newItem = Item(name = request.form['itemName'], description = request.form['description'], category_id = request.form['category'], 
+            user_id = login_session['user_id'])
+        db.session.add(newItem)
+        db.session.commit()
+        flash('%s item created' % newItem.name)
+        return redirect(url_for('showCatalogHome'))
+
+    else:
+        categories = db.session.query(Category).order_by(asc(Category.name))
+        return render_template('newItem.html', categories=categories)
+
+
 # User Helper Functions
 def createUser(login_session):
     newUser = User(name=login_session['username'], email=login_session[
                    'email'])
     db.session.add(newUser)
     db.session.commit()
-    user = session.query(User).filter_by(email=login_session['email']).one()
+    user = db.session.query(User).filter_by(email=login_session['email']).one()
     return user.id
 
 
