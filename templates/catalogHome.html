@@ -1,6 +1,18 @@
 {% extends "base.html" %}
 {% block content %}
     <div class="container">
+        <div class = "flash">
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+            
+                <ul>
+                    {% for message in messages %}
+                        <li> <strong> {{ message }} </strong> </li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        {% endwith %}
+        </div>
         <div class="row">
             <div class="col-sm-4">
                 <h2>Categories</h2>
