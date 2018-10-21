@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block content %}
+    <div class="container">
+        {% if item %}
+            <h2>{{item.name}}</h2>
+            <div>Description: {{item.description}}</div>
+        {% else %}
+            <div>Item not found</div>
+        {% endif %}
+    </div>
+
+{% endblock %}
