@@ -167,6 +167,7 @@ def gdisconnect():
         return response
 
 @app.route('/')
+@app.route('/catalog')
 def showCatalogHome():
     categories = db.session.query(Category).order_by(asc(Category.name))
     items = db.session.query(Item).order_by(desc(Item.id)).limit(10)
@@ -208,6 +209,43 @@ def addItem():
         categories = db.session.query(Category).order_by(asc(Category.name))
         return render_template('newItem.html', categories=categories)
 
+@app.route('/catalog/<string:category_name>/<string:item_name>/edit/', methods=['GET', 'POST'])
+def editItem(category_name, item_name):
+    if 'username' not in login_session:
+        return redirect('/login')
+    editedItem, category = item, category = db.session.query(Item, Category).\
+        filter(Item.category_id == Category.id).\
+        filter(Category.name == category_name, Item.name == item_name).one()
+    if login_session['user_id'] != editedItem.user_id:
+        return "<script>function myFunction() {alert('You are not authorized to edit items you did not create.');}</script><body onload='myFunction()''>"
+    if request.method == 'POST':
+        if request.form['itemName']:
+            editedItem.name = request.form['itemName']
+        if request.form['description']:
+            editedItem.description = request.form['description']
+        db.session.add(editedItem)
+        db.session.commit()
+        flash('Item Successfully Edited')
+        return redirect(url_for('showCatalogHome'))
+    else:
+        return render_template('editItem.html', item=editedItem)
+
+@app.route('/catalog/<string:category_name>/<string:item_name>/delete/', methods=['GET', 'POST'])
+def deleteItem(category_name, item_name):
+    if 'username' not in login_session:
+        return redirect('/login')
+    itemToDelete, category = item, category = db.session.query(Item, Category).\
+        filter(Item.category_id == Category.id).\
+        filter(Category.name == category_name, Item.name == item_name).one()
+    if login_session['user_id'] != itemToDelete.user_id:
+        return "<script>function myFunction() {alert('You are not authorized to delete items you did not create.');}</script><body onload='myFunction()''>"
+    if request.method == 'POST':
+        db.session.delete(itemToDelete)
+        db.session.commit()
+        flash('Item Successfully Deleted')
+        return redirect(url_for('showCatalogHome'))
+    else:
+        return render_template('deleteItem.html', item=itemToDelete)
 
 # User Helper Functions
 def createUser(login_session):

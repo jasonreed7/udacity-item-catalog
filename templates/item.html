@@ -7,6 +7,15 @@
         {% else %}
             <div>Item not found</div>
         {% endif %}
+        
+        {% if item.user_id == user_id %}
+            <div>
+                <a href="{{ url_for('editItem', category_name = item.category.name, item_name = 
+                item.name) }}">Edit</a> &nbsp; | &nbsp;
+                <a href="{{ url_for('deleteItem', category_name = item.category.name, item_name = 
+                item.name) }}">Delete</a>
+            </div>    
+        {% endif %}
     </div>
 
 {% endblock %}
